@@ -18,6 +18,7 @@
 import { useRoute } from "vue-router";
 import BasicLayout from "@/layouts/BasicLayout.vue";
 import { onMounted } from "vue";
+import "bytemd/dist/index.css";
 
 const route = useRoute();
 
