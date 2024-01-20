@@ -2,7 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type PostThumbAddRequest = {
-    postId?: number;
+export type JudgeConfig = {
+    memoryLimit?: number;
+    stackLimit?: number;
+    timeLimit?: number;
 };
 

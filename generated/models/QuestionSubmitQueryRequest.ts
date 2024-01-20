@@ -2,19 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type PostQueryRequest = {
-    content?: string;
+export type QuestionSubmitQueryRequest = {
     current?: number;
-    favourUserId?: number;
-    id?: number;
-    notId?: number;
-    orTags?: Array<string>;
+    language?: string;
     pageSize?: number;
-    searchText?: string;
+    questionId?: number;
     sortField?: string;
     sortOrder?: string;
-    tags?: Array<string>;
-    title?: string;
+    status?: number;
     userId?: number;
 };
 
