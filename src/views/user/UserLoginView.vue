@@ -51,7 +51,7 @@ const handleSubmit = async () => {
       replace: true,
     });
   } else {
-    alert("登录失败" + res.message);
+    message.error("登录失败，" + res.message);
     // message.error("登陆失败", res.message);
   }
 };

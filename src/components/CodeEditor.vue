@@ -18,7 +18,7 @@ interface Props {
  * 给组件的 props属性默认值
  */
 const props = withDefaults(defineProps<Props>(), {
-  value: () => "",
+  value: () => "public class Main {" + "\n\n}",
   handleChange: (v: string) => {
     console.log(v);
   },
