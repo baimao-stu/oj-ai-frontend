@@ -5,10 +5,11 @@
       :data="dataList"
       :pagination="{
         total,
-        current: pageParams.current,
-        pageSize: pageParams.pageSize,
+        current: searchParams.current,
+        pageSize: searchParams.pageSize,
         showTotal: true,
       }"
+      @page-change="onPageChange"
     >
       <template #optional="{ record }">
         <a-space>
@@ -25,24 +26,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watchEffect } from "vue";
 import { Question, QuestionControllerService } from "../../../generated";
 import message from "@arco-design/web-vue/es/message";
 import { useRouter } from "vue-router";
 
 const dataList = ref([]);
 const total = ref(0);
-const pageParams = ref({
+const searchParams = ref({
   current: 1,
   pageSize: 10,
 });
-
-/**
- * 加载分页数据
- */
+/** 加载分页数据*/
 const loadData = async () => {
   const res = await QuestionControllerService.listQuestionByPageUsingPost(
-    pageParams.value
+    searchParams.value
   );
   if (res.code === 0) {
     dataList.value = res.data.records;
@@ -52,10 +50,23 @@ const loadData = async () => {
     message.error("请求失败，" + res.message);
   }
 };
+/** 监听 loadData 的响应式依赖，如 searchParams改变时重新执行 loadData */
+watchEffect(() => {
+  loadData();
+  console.log("watchEffect");
+});
 
 onMounted(() => {
   loadData();
 });
+
+// 切换页码
+const onPageChange = (page: number) => {
+  searchParams.value = {
+    ...searchParams.value,
+    current: page,
+  };
+};
 
 const columns = [
   {

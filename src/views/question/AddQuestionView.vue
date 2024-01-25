@@ -296,6 +296,7 @@ const onAnswerChange = (value: string) => {
 <style>
 #AddQuestionView {
 }
+
 .page-title {
   margin-left: 64px;
   margin-top: 0;

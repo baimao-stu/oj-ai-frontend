@@ -1,9 +1,9 @@
 <template>
-  <div id="codeEditor" ref="divRef" style="min-height: 400px" />
+  <div id="codeEditor" ref="divRef" style="min-height: 500px; height: 70vh" />
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRaw, withDefaults, defineProps } from "vue";
+import { defineProps, onMounted, ref, toRaw, watch, withDefaults } from "vue";
 import * as monaco from "monaco-editor";
 
 /**
@@ -11,6 +11,7 @@ import * as monaco from "monaco-editor";
  */
 interface Props {
   value: string;
+  language?: string;
   handleChange: (v: string) => void;
 }
 
@@ -19,6 +20,7 @@ interface Props {
  */
 const props = withDefaults(defineProps<Props>(), {
   value: () => "public class Main {" + "\n\n}",
+  language: "java",
   handleChange: (v: string) => {
     console.log(v);
   },
@@ -35,18 +37,40 @@ onMounted(() => {
   //创建代码编辑器，并配置属性
   codeEditor.value = monaco.editor.create(divRef.value, {
     value: props.value,
-    language: "java",
+    language: props.language,
     // theme: "vs-dark",
     automaticLayout: true,
     colorDecorators: true,
     minimap: {
-      enabled: true,
+      enabled: false,
     },
     readOnly: false,
   });
   // 监听代码编辑器内容变化
   codeEditor.value.onDidChangeModelContent(() => {
-    console.log("目前内容为：", toRaw(codeEditor.value).getValue());
+    props.handleChange(toRaw(codeEditor.value).getValue());
   });
 });
+
+//语言变化时重新加载代码编辑器
+// watch(
+//   () => props.language,
+//   () => {
+//     codeEditor.value = monaco.editor.create(divRef.value, {
+//       value: props.value,
+//       language: props.language,
+//       automaticLayout: true,
+//       colorDecorators: true,
+//       minimap: {
+//         enabled: false,
+//       },
+//       readOnly: false,
+//     });
+//     // 监听代码编辑器内容变化
+//     codeEditor.value.onDidChangeModelContent(() => {
+//       console.log("目前内容为：", toRaw(codeEditor.value).getValue());
+//     });
+//     console.log("language:", props.language);
+//   }
+// );
 </script>
