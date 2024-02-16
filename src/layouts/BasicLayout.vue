@@ -7,7 +7,7 @@
       <a-layout-content class="content">
         <router-view />
       </a-layout-content>
-      <a-layout-footer class="footer">baimao@Online Judge</a-layout-footer>
+      <a-layout-footer class="footer"> © 2024 AcCode </a-layout-footer>
     </a-layout>
   </div>
 </template>
@@ -26,22 +26,25 @@ export default {
 
 #basicLayout .header {
   margin-bottom: 10px;
-  box-shadow: #eee 1px 1px 5px;
+  box-shadow: #d7d6d6 1px 1px 5px;
 }
 
 #basicLayout .content {
   background: linear-gradient(to right, #fefefe, #fff);
+  //background: #f2f3f6;
   margin-bottom: 16px;
   padding: 10px;
 }
 
 #basicLayout .footer {
-  background: #efefef;
-  position: sticky;
+  //background: #efffff;
+  //position: sticky;
   left: 0;
   right: 0;
   bottom: 0;
   text-align: center;
   padding: 16px;
+  font-family: "Satisfy", cursive;
+  font-size: 18px;
 }
 </style>

@@ -1,34 +1,56 @@
 <template>
-  <a-row class="grid-demo" align="center" :wrap="false">
-    <a-col flex="auto">
-      <div>
-        <a-menu
-          mode="horizontal"
-          :selected-keys="selectedKeys"
-          @menu-item-click="doMenuClick"
-        >
-          <a-menu-item
-            key="0"
-            :style="{ padding: 0, marginRight: '38px' }"
-            disabled
+  <div id="GlobalHeader">
+    <a-row class="grid-demo" align="center" :wrap="false">
+      <a-col flex="auto">
+        <div>
+          <a-menu
+            mode="horizontal"
+            :selected-keys="selectedKeys"
+            @menu-item-click="doMenuClick"
           >
-            <div class="title-bar">
-              <img class="logo" src="../assets/oj-logo.svg" />
-              <div class="title">Online Judge</div>
+            <a-menu-item
+              key="0"
+              :style="{ padding: 0, marginRight: '38px' }"
+              disabled
+            >
+              <div class="title-bar">
+                <img class="logo" src="../assets/oj-logo.svg" />
+                <div class="title">AcCode</div>
+              </div>
+            </a-menu-item>
+            <a-menu-item v-for="item in visibleRoute" :key="item.path"
+              >{{ item.name }}
+            </a-menu-item>
+          </a-menu>
+        </div>
+      </a-col>
+      <a-col flex="120px">
+        <div>
+          <a-space>
+            <div class="dropdown-div">
+              <a-dropdown trigger="hover" style="width: 80px">
+                <a-button
+                  type="outline"
+                  status="success"
+                  class="dropdown-button"
+                >
+                  {{ store.state.user?.loginUser?.userName ?? "未登录" }}
+                </a-button>
+                <template #content>
+                  <a-doption @click="login_logout">
+                    {{
+                      store.state.user?.loginUser?.userName ? "退出" : "登录"
+                    }}
+                  </a-doption>
+                  <a-doption @click="to_register">注册</a-doption>
+                </template>
+              </a-dropdown>
             </div>
-          </a-menu-item>
-          <a-menu-item v-for="item in visibleRoute" :key="item.path"
-            >{{ item.name }}
-          </a-menu-item>
-        </a-menu>
-      </div>
-    </a-col>
-    <a-col flex="100px">
-      <div>
-        {{ store.state.user?.loginUser?.userName ?? "未登录" }}
-      </div>
-    </a-col>
-  </a-row>
+          </a-space>
+        </div>
+      </a-col>
+    </a-row>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -38,6 +60,8 @@ import { computed, ref } from "vue";
 import { useStore } from "vuex";
 import checkAccess from "@/access/checkAccess";
 import ACCESS_ENUM from "@/access/accessEnum";
+import message from "@arco-design/web-vue/es/message";
+import { UserControllerService } from "../../generated";
 
 const router = useRouter();
 const selectedKeys = ref(["/"]); //默认选中的路由
@@ -73,6 +97,39 @@ router.afterEach((to, from, failure) => {
   selectedKeys.value = [to.path];
 });
 
+/**
+ * 登录、退出、注册
+ */
+const login_logout = async () => {
+  await store.dispatch("user/getLoginUser");
+  const loginUser = store.state.user.loginUser;
+  //如果未登录，跳转到登录页面
+  if (loginUser.userRole === ACCESS_ENUM.NOT_LOGIN) {
+    router.push({
+      path: "/user/login",
+      replace: true,
+    });
+  } else {
+    //如果已登录，则退出
+    const res = await UserControllerService.userLogoutUsingPost();
+    if (res.code === 0) {
+      message.success("已退出");
+      router.push({
+        path: "/user/login",
+        replace: true,
+      });
+    } else {
+      message.error("退出失败，" + res.message);
+    }
+  }
+};
+const to_register = () => {
+  router.push({
+    path: "/user/register",
+    replace: true,
+  });
+};
+
 // setTimeout(() => {
 //   // 分发 action
 //   store.dispatch("user/getLoginUser", {
@@ -95,5 +152,15 @@ router.afterEach((to, from, failure) => {
 .title {
   color: #444;
   margin-left: 16px;
+  font-family: "Satisfy", cursive;
+  font-size: 30px;
+}
+
+.dropdown-button {
+  text-align: left;
+  display: inline;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

@@ -7,7 +7,7 @@ export default {
   // initial state
   state: () => ({
     loginUser: {
-      userName: "未登录",
+      // userName: "未登录",
     },
   }),
   // actions（异步）

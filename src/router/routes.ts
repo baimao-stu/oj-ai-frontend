@@ -1,7 +1,5 @@
 import { RouteRecordRaw } from "vue-router";
-import HomeView from "../views/SampleView.vue";
 import NoAuthView from "@/views/NoAuthView.vue";
-import AdminView from "@/views/AdminView.vue";
 import ACCESS_ENUM from "@/access/accessEnum";
 import UserLayout from "@/layouts/UserLayout.vue";
 import UserLoginView from "@/views/user/UserLoginView.vue";
@@ -10,6 +8,8 @@ import AddQuestionView from "@/views/question/AddQuestionView.vue";
 import ManageQuestionView from "@/views/question/ManageQuestionView.vue";
 import QuestionsView from "@/views/question/QuestionsView.vue";
 import ViewQuestionView from "@/views/question/ViewQuestionView.vue";
+import QuestionSubmitView from "@/views/question/QuestionSubmitView.vue";
+import SampleView from "@/views/SampleView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -73,9 +73,25 @@ export const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/list/question_submit",
+    name: "提交列表",
+    component: QuestionSubmitView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+    },
+  },
+  {
     path: "/",
     name: "主页",
     component: QuestionsView,
+  },
+  {
+    path: "/sample",
+    name: "示例",
+    component: SampleView,
+    meta: {
+      hidden: true,
+    },
   },
 
   // {

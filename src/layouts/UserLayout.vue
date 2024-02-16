@@ -3,14 +3,14 @@
     <a-layout style="min-height: 100vh">
       <a-layout-header class="header">
         <a-space>
-          <img src="../assets/oj-logo.svg" class="logo" />
-          <div>Online Judge</div>
+          <!--          <img src="../assets/oj-logo.svg" class="logo" />-->
+          <div class="title">AcCode</div>
         </a-space>
       </a-layout-header>
       <a-layout-content class="content">
         <router-view />
       </a-layout-content>
-      <a-layout-footer class="footer">baimao@Online Judge</a-layout-footer>
+      <a-layout-footer class="footer">© 2024 AcCode</a-layout-footer>
     </a-layout>
   </div>
 </template>
@@ -23,6 +23,12 @@
   width: 64px;
 }
 
+.title {
+  color: #444;
+  margin-left: 16px;
+  font-family: "Satisfy", cursive;
+  font-size: 30px;
+}
 #userLayout {
   text-align: center;
   background: url("https://gw.alipayobjects.com/zos/rmsportal/FfdJeJRQWjEeGTpqgBKj.png")
@@ -40,11 +46,13 @@
 }
 
 #userLayout .footer {
-  position: sticky;
+  //position: sticky;
   left: 0;
   right: 0;
   bottom: 0;
   text-align: center;
   padding: 16px;
+  font-family: "Satisfy", cursive;
+  font-size: 18px;
 }
 </style>

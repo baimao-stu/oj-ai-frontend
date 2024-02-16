@@ -16,7 +16,7 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   function (response) {
     // 对响应数据做点什么
-    console.log(response);
+    console.log("响应的数据：", response);
     return response;
   },
   function (error) {

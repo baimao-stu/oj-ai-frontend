@@ -12,6 +12,7 @@ import * as monaco from "monaco-editor";
 interface Props {
   value: string;
   language?: string;
+  readonly?: boolean;
   handleChange: (v: string) => void;
 }
 
@@ -19,10 +20,14 @@ interface Props {
  * 给组件的 props属性默认值
  */
 const props = withDefaults(defineProps<Props>(), {
-  value: () => "public class Main {" + "\n\n}",
+  value: () =>
+    "public class Main {\n" +
+    "   public static void main(String[] args) {\n\n" +
+    "   }\n" +
+    "}\n",
   language: "java",
   handleChange: (v: string) => {
-    console.log(v);
+    console.log("编辑器的内容：" + v);
   },
 });
 
@@ -44,7 +49,11 @@ onMounted(() => {
     minimap: {
       enabled: false,
     },
-    readOnly: false,
+    readOnly: props.readonly,
+    scrollbar: {
+      vertical: "hidden",
+      horizontal: "hidden",
+    },
   });
   // 监听代码编辑器内容变化
   codeEditor.value.onDidChangeModelContent(() => {
@@ -52,25 +61,28 @@ onMounted(() => {
   });
 });
 
-//语言变化时重新加载代码编辑器
-// watch(
-//   () => props.language,
-//   () => {
-//     codeEditor.value = monaco.editor.create(divRef.value, {
-//       value: props.value,
-//       language: props.language,
-//       automaticLayout: true,
-//       colorDecorators: true,
-//       minimap: {
-//         enabled: false,
-//       },
-//       readOnly: false,
-//     });
-//     // 监听代码编辑器内容变化
-//     codeEditor.value.onDidChangeModelContent(() => {
-//       console.log("目前内容为：", toRaw(codeEditor.value).getValue());
-//     });
-//     console.log("language:", props.language);
-//   }
-// );
+//语言变化时设置代码编辑器的语言环境
+watch(
+  () => [props.language, props.readonly],
+  () => {
+    if (codeEditor.value) {
+      monaco.editor.setModelLanguage(
+        toRaw(codeEditor.value).getModel(),
+        props.language
+      );
+    }
+  }
+);
+
+/**
+ * 重置编辑器内部代码
+ */
+const resetCode = () => {
+  console.log("reset code");
+  toRaw(codeEditor.value).setValue("");
+};
+// eslint-disable-next-line no-undef
+defineExpose({
+  resetCode,
+});
 </script>

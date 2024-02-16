@@ -15,13 +15,17 @@
         style="min-width: 240px"
         :label-col-style="{ fontWeight: 'bold' }"
       >
-        <a-input-tag v-model="searchParams.tags" placeholder="请输入标签" />
+        <a-input-tag
+          v-model="searchParams.tags"
+          placeholder="请输入标签后按回车"
+        />
       </a-form-item>
       <a-form-item>
         <a-button type="primary" @click="doSubmit">提交</a-button>
       </a-form-item>
     </a-form>
     <a-divider size="0" />
+
     <a-table
       :columns="columns"
       :data="dataList"
@@ -43,18 +47,18 @@
         </a-space>
       </template>
       <template #acceptedRatio="{ record }">
-        {{
-          `${record.subNum ? record.acceptedNum / record.subNum : "0"}%(${
-            record.acceptedNum
-          }/${record.subNum})`
-        }}
+        <span class="ratio_class">
+          {{
+            `${
+              record.subNum ? (record.acceptedNum / record.subNum) * 100 : "0"
+            }%（${record.acceptedNum}/${record.subNum}）`
+          }}
+        </span>
       </template>
-      <template #optional="{ record }">
-        <a-space>
-          <a-button type="primary" @click="toQuestionPage(record)"
-            >做题
-          </a-button>
-        </a-space>
+      <template #title="{ record }">
+        <span @click="toQuestionPage(record)" class="question_title">{{
+          record.title
+        }}</span>
       </template>
     </a-table>
   </div>
@@ -66,7 +70,7 @@ import {
   Question,
   QuestionControllerService,
   QuestionQueryRequest,
-} from "../../../generated";
+} from "../../../generated/";
 import message from "@arco-design/web-vue/es/message";
 import { useRouter } from "vue-router";
 
@@ -86,9 +90,6 @@ const loadData = async () => {
   if (res.code === 0) {
     dataList.value = res.data.records;
     total.value = res.data.total;
-    // dataList.value.map((item) => {
-    //   item.id = item.id.substring(item.id.length - 5); //只取id的后5位
-    // });
   } else {
     message.error("请求失败，" + res.message);
   }
@@ -122,7 +123,7 @@ const columns = [
   },
   {
     title: "标题",
-    dataIndex: "title",
+    slotName: "title",
     headerCellStyle: {
       fontWeight: "bold",
     },
@@ -142,10 +143,6 @@ const columns = [
       fontWeight: "bold",
     },
     width: 200,
-  },
-  {
-    slotName: "optional",
-    width: 100,
   },
 ];
 
@@ -174,5 +171,18 @@ const toQuestionPage = (question: Question) => {
 #manageQuestionView {
   max-width: 1080px;
   margin: 0 auto;
+}
+.question_title {
+  color: #3380c2;
+  font-weight: 500;
+  font-size: 16px;
+}
+.question_title:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ratio_class {
+  color: gray;
+  font-weight: 500;
 }
 </style>

@@ -1,5 +1,30 @@
 <template>
   <div id="manageQuestionView">
+    <a-form :model="searchParams" layout="inline">
+      <a-form-item
+        field="title"
+        label="标题"
+        style="min-width: 240px"
+        :label-col-style="{ fontWeight: 'bold' }"
+      >
+        <a-input v-model="searchParams.title" placeholder="请输入标题" />
+      </a-form-item>
+      <a-form-item
+        field="tags"
+        label="标签"
+        style="min-width: 240px"
+        :label-col-style="{ fontWeight: 'bold' }"
+      >
+        <a-input-tag
+          v-model="searchParams.tags"
+          placeholder="请输入标签后按回车"
+        />
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" @click="doSubmit">提交</a-button>
+      </a-form-item>
+    </a-form>
+    <a-divider size="0" />
     <a-table
       :columns="columns"
       :data="dataList"
@@ -11,6 +36,19 @@
       }"
       @page-change="onPageChange"
     >
+      <template #tags="{ record }">
+        <a-space wrap>
+          <a-tag
+            v-for="(tag, index) of JSON.parse(record.tags)"
+            :key="index"
+            color="green"
+            >{{ tag }}
+          </a-tag>
+        </a-space>
+      </template>
+      <template #createTime="{ record }">
+        {{ moment.utc(record.createTime).local().format("YYYY-MM-DD") }}
+      </template>
       <template #optional="{ record }">
         <a-space>
           <a-button type="primary" @click="doUpdateQuestion(record)"
@@ -27,13 +65,16 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watchEffect } from "vue";
-import { Question, QuestionControllerService } from "../../../generated";
+import { Question, QuestionControllerService } from "../../../generated/";
 import message from "@arco-design/web-vue/es/message";
 import { useRouter } from "vue-router";
+import moment from "moment/moment";
 
 const dataList = ref([]);
 const total = ref(0);
 const searchParams = ref({
+  title: "",
+  tags: [],
   current: 1,
   pageSize: 10,
 });
@@ -70,54 +111,121 @@ const onPageChange = (page: number) => {
 
 const columns = [
   {
-    title: "编号",
+    title: "#",
     dataIndex: "id",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "#3380c2",
+      fontWeight: "500",
+    },
   },
   {
     title: "标题",
     dataIndex: "title",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "#3380c2",
+      fontWeight: "500",
+    },
   },
-  {
-    title: "内容",
-    dataIndex: "content",
-  },
+  // {
+  //   title: "内容",
+  //   dataIndex: "content",
+  //   headerCellStyle: {
+  //     fontWeight: "bold",
+  //   },
+  // },
   {
     title: "标签",
-    dataIndex: "tags",
+    slotName: "tags",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
   },
-  {
-    title: "答案",
-    dataIndex: "answer",
-  },
+  // {
+  //   title: "答案",
+  //   dataIndex: "answer",
+  //   headerCellStyle: {
+  //     fontWeight: "bold",
+  //   },
+  // },
   {
     title: "提交数",
     dataIndex: "subNum",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "gray",
+      fontWeight: "500",
+    },
   },
   {
     title: "通过数",
     dataIndex: "acceptedNum",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "gray",
+      fontWeight: "500",
+    },
   },
-  {
-    title: "判题用例",
-    dataIndex: "judgeCase",
-  },
-  {
-    title: "判题配置",
-    dataIndex: "judgeConfig",
-  },
+  // {
+  //   title: "判题用例",
+  //   dataIndex: "judgeCase",
+  //   headerCellStyle: {
+  //     fontWeight: "bold",
+  //   },
+  // },
+  // {
+  //   title: "判题配置",
+  //   dataIndex: "judgeConfig",
+  //   headerCellStyle: {
+  //     fontWeight: "bold",
+  //   },
+  // },
   {
     title: "用户编号",
     dataIndex: "userId",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "gray",
+      fontWeight: "500",
+    },
   },
   {
     title: "创建时间",
-    dataIndex: "createTime",
+    slotName: "createTime",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
+    bodyCellStyle: {
+      color: "gray",
+      fontWeight: "500",
+    },
   },
   {
     title: "操作",
     slotName: "optional",
+    headerCellStyle: {
+      fontWeight: "bold",
+    },
   },
 ];
+
+const doSubmit = () => {
+  searchParams.value = {
+    ...searchParams.value,
+    current: 1,
+  };
+};
 
 const router = useRouter();
 
@@ -150,5 +258,7 @@ const doDeleteQuestion = async (question: Question) => {
 
 <style scoped>
 #manageQuestionView {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 </style>

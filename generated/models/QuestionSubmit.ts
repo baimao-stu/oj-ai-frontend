@@ -2,15 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type QuestionSubmitQueryRequest = {
-    current?: number;
-    judgeStatus?: string;
+export type QuestionSubmit = {
+    code?: string;
+    createTime?: string;
+    id?: number;
+    isDelete?: number;
+    judgeInfo?: string;
     language?: string;
-    pageSize?: number;
     questionId?: number;
-    sortField?: string;
-    sortOrder?: string;
     status?: number;
+    updateTime?: string;
     userId?: number;
 };
 
