@@ -17,11 +17,13 @@ export default {
       const res = await UserControllerService.getLoginUserUsingGet();
       if (res.code === 0) {
         commit("updateUser", res.data);
+        console.log("updateUser", res.data);
       } else {
         commit("updateUser", {
           ...state.loginUser,
           userRole: ACCESS_ENUM.NOT_LOGIN,
         });
+        console.log("updateUser fail", res.data);
       }
     },
   },

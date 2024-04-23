@@ -5,11 +5,14 @@
         <a-tabs
           :active-key="tabsKey"
           @tab-click="onTabClick"
-          @change="console.log(tabsKey)"
+          @change="onTabClick(tabsKey)"
           animation="true"
         >
           <a-tab-pane key="question" title="题目">
-            <a-card v-if="question" :title="question.title">
+            <a-card
+              v-if="question"
+              :title="question.id + '. ' + question.title"
+            >
               <a-descriptions
                 title="判题条件"
                 :column="{ xs: 1, md: 2, lg: 3 }"
@@ -18,7 +21,10 @@
                   {{ question.judgeConfig.timeLimit }} ms
                 </a-descriptions-item>
                 <a-descriptions-item label="内存限制">
-                  {{ question.judgeConfig.memoryLimit / 1024 / 1024 }} KB
+                  {{
+                    Math.ceil(question.judgeConfig.memoryLimit / 1024 / 1024)
+                  }}
+                  MB
                 </a-descriptions-item>
                 <!--                <a-descriptions-item label="堆栈限制">-->
                 <!--                  {{ question.judgeConfig.stackLimit }}-->
@@ -53,12 +59,12 @@
                 @page-change="onPageChange"
                 column-resizable
                 :table-layout-fixed="true"
+                :loading="loadTable"
               >
                 <template #createTime="{ record }">
                   {{
-                    moment
-                      .utc(record.createTime)
-                      .local()
+                    moment(record.createTime)
+                      .utcOffset(8)
                       .format("YYYY-MM-DD HH:mm:ss")
                   }}
                 </template>
@@ -67,6 +73,12 @@
                     v-if="record.judgeInfo.message === 'Accepted'"
                     @click="show_submission_detail(record)"
                     class="ACStatus"
+                  >
+                    {{ record.judgeInfo.message }}
+                  </span>
+                  <span
+                    v-else-if="record.judgeInfo.message === 'Waiting'"
+                    class="WaitStatus"
                   >
                     {{ record.judgeInfo.message }}
                   </span>
@@ -124,16 +136,17 @@
                   <a-descriptions-item label="运行空间">
                     {{
                       selectedSubmissionRecord.judgeInfo.memory != "0"
-                        ? selectedSubmissionRecord.judgeInfo.memory + "KB"
+                        ? Math.ceil(
+                            selectedSubmissionRecord.judgeInfo.memory / 1024
+                          ) + "KB"
                         : "N/A"
                     }}
                   </a-descriptions-item>
                   <a-descriptions-item label="提交时间">
                     {{
-                      moment
-                        .utc(selectedSubmissionRecord.createTime)
-                        .local()
-                        .format("YYYY-MM-DD HH:mm:ss")
+                      moment(selectedSubmissionRecord.createTime)
+                        .utcOffset(8)
+                        .format("YYYY-MM-DD")
                     }}
                   </a-descriptions-item>
                 </a-descriptions>
@@ -149,7 +162,7 @@
                   "
                   readonly
                 />
-                标注答案<a-input
+                标准答案<a-input
                   v-model="errorCase.output"
                   style="
                     margin-top: 10px;
@@ -190,7 +203,6 @@
                 >
                   <a-option>java</a-option>
                   <a-option>cpp</a-option>
-                  <a-option>go</a-option>
                 </a-select>
               </a-form-item>
             </a-form>
@@ -199,49 +211,9 @@
               status="success"
               style="min-width: 90px; margin-left: 10px; margin-bottom: 5px"
               @click="doSubmit"
-            >
-              <svg
-                t="1707829136730"
-                class="icon"
-                viewBox="0 0 1024 1024"
-                version="1.1"
-                xmlns="http://www.w3.org/2000/svg"
-                p-id="5160"
-                width="25"
-                height="25"
-              >
-                <path
-                  d="M892.272 386.496c2.448-11.104 3.728-22.656 3.728-34.496 0-88.368-71.632-160-160-160-14.224 0-28.016 1.872-41.136 5.36-24.8-77.36-97.296-133.36-182.864-133.36-87.344 0-161.056 58.336-184.32 138.176-22.736-6.624-46.8-10.176-71.68-10.176-141.376 0-256 114.608-256 256s114.608 256 256 256l128 0 0 192 256 0 0-192 224 0c88.368 0 160-71.632 160-160 0-78.72-56.848-144.16-131.728-157.504zM576 640l0 192-128 0 0-192-160 0 224-224 224 224-160 0z"
-                  fill="#93f669"
-                  p-id="5161"
-                ></path></svg
-              >&nbsp;&nbsp;提交
+              >提交
             </a-button>
             <!--评测过渡动画-->
-            <div style="margin-left: 5px">
-              <svg
-                t="1708092483918"
-                class="icon"
-                viewBox="0 0 1024 1024"
-                version="1.1"
-                xmlns="http://www.w3.org/2000/svg"
-                p-id="4928"
-                width="24"
-                height="24"
-                @click="editorResetCode"
-              >
-                <path
-                  d="M944.443077 355.249231v-236.307693l-236.307692 236.307693h236.307692zM119.729231 707.347692v236.307693l236.307692-236.307693h-236.307692z"
-                  p-id="4929"
-                  fill="#bfbfbf"
-                ></path>
-                <path
-                  d="M157.538462 512H0a512 512 0 0 1 896.393846-337.92L781.390769 281.206154A364.701538 364.701538 0 0 0 512 157.538462 355.249231 355.249231 0 0 0 157.538462 512zM512 1024a523.815385 523.815385 0 0 1-343.433846-129.181538l109.489231-116.578462A354.461538 354.461538 0 0 0 866.461538 512h157.538462A512.787692 512.787692 0 0 1 512 1024z"
-                  p-id="4930"
-                  fill="#bfbfbf"
-                ></path>
-              </svg>
-            </div>
             <div v-if="loading" id="loading">
               <a-space>
                 <div class="loader"></div>
@@ -275,14 +247,17 @@ import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
 import moment from "moment/moment";
 import store from "@/store";
+import { ceil } from "lodash-es";
 
 interface Props {
   id: string;
+  contestId: string;
 }
 
 //1. 当路由的props设置为时true，route.params将会被设置为组件 props，所以这里的props的id会被设置为route.params
 const props = withDefaults(defineProps<Props>(), {
   id: () => "",
+  contestId: () => "",
 });
 const question = ref<QuestionVO>();
 
@@ -301,14 +276,18 @@ const tabsKey = ref("question");
  * 点击卡片时触发
  * @param key
  */
+const loadTable = ref(false); //加载表格的过渡状态
 const onTabClick = (key: string) => {
   console.log("onTabClick:" + key);
   tabsKey.value = key;
   if (tabsKey.value === "question") {
     loadData1();
   } else if (tabsKey.value === "submissions") {
-    loadData3();
+    loadTable.value = true;
     showSubmissionsTable.value = true;
+    loadData3();
+    // setTimeout(() => (loadTable.value = false), 2000);
+    loadTable.value = false;
   }
 };
 
@@ -337,11 +316,7 @@ onMounted(async () => {
 });
 
 const form = ref<QuestionSubmitAddRequest>({
-  code:
-    "public class Main {\n" +
-    "   public static void main(String[] args) {\n\n" +
-    "   }\n" +
-    "}\n",
+  code: "",
   language: "java",
 });
 
@@ -360,19 +335,16 @@ const doSubmit = async () => {
   const res = await QuestionControllerService.doQuestionSubmitVoUsingPost({
     ...form.value,
     questionId: question.value.id,
+    contestId: props.contestId,
   });
   if (res.code === 0) {
     message.success("提交成功");
-    tabsKey.value = "submissions";
-    // let judgeInfoObj = JSON.parse(res.data.judgeInfo);
-    // res.data.judgeInfo = judgeInfoObj;
-    show_submission_detail(res.data);
-    // 答案错误，展示错误时的测试用例
-    if (res.data.errorCase) {
-      errorCase.value = res.data.errorCase;
-    } else {
-      errorCase.value = null;
-    }
+    // tabsKey.value = "submissions";
+    //提交判题后等待结果并展示
+    // show_submission_detail(res.data);
+    onTabClick("submissions");
+    onPageChange(1);
+
     console.log(tabsKey.value, res.data);
   } else {
     message.error("提交失败，" + res.message);
@@ -465,12 +437,18 @@ const columns = [
   },
 ];
 
-const showSubmissionsTable = ref(true);
+const showSubmissionsTable = ref(true); //是否展示提交列表
 const selectedSubmissionRecord = ref(); //点击查看了哪个提交记录
 //展示某条提交记录
 const show_submission_detail = (record: any) => {
   showSubmissionsTable.value = false;
   selectedSubmissionRecord.value = record;
+  // 答案错误，展示错误时的测试用例
+  if (record.errorCase) {
+    errorCase.value = record.errorCase;
+  } else {
+    errorCase.value = null;
+  }
   console.log(showSubmissionsTable.value);
   console.log("selectedSubmissionRecord", selectedSubmissionRecord.value);
 };
@@ -510,6 +488,9 @@ const show_submission_detail = (record: any) => {
   margin-bottom: 0 !important;
 }
 
+.WaitStatus {
+  color: gray;
+}
 .ACStatus {
   color: green;
 }
@@ -523,5 +504,15 @@ const show_submission_detail = (record: any) => {
 .ERRStatus:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+.reloadButton {
+  margin-left: 5px;
+}
+.reloadButton:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
+.arco-card-header-title {
+  font-size: 20px !important;
 }
 </style>

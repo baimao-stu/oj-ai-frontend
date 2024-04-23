@@ -4,7 +4,12 @@
       <a-layout-header class="header">
         <a-space>
           <!--          <img src="../assets/oj-logo.svg" class="logo" />-->
-          <div class="title">AcCode</div>
+          <div class="title">
+            <a-space>
+              <img class="logo" src="../assets/oj-logo.svg" />
+              <div style="margin-left: 10px">AcCode</div>
+            </a-space>
+          </div>
         </a-space>
       </a-layout-header>
       <a-layout-content class="content">
@@ -37,7 +42,7 @@
 
 #userLayout .header {
   margin-bottom: 10px;
-  margin-top: 16px;
+  margin-top: 48px;
 }
 
 #userLayout .content {

@@ -2,12 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { JudgeCase } from './JudgeCase';
 import type { JudgeInfo } from './JudgeInfo';
 import type { QuestionVO } from './QuestionVO';
 import type { UserVO } from './UserVO';
 export type QuestionSubmitVO = {
     code?: string;
+    contestId?: number;
     createTime?: string;
+    errorCase?: JudgeCase;
     id?: number;
     judgeInfo?: JudgeInfo;
     language?: string;

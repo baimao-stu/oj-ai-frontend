@@ -2,10 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type QuestionSubmitAddRequest = {
-    code?: string;
+export type ContestUserVOQueryRequest = {
     contestId?: number;
-    language?: string;
-    questionId?: number;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
 };
 

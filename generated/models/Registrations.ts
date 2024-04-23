@@ -2,17 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type QuestionSubmit = {
-    code?: string;
+export type Registrations = {
     contestId?: number;
     createTime?: string;
-    errorCase?: string;
     id?: number;
     isDelete?: number;
-    judgeInfo?: string;
-    language?: string;
-    questionId?: number;
-    status?: number;
+    joinTime?: string;
+    rank?: number;
     updateTime?: string;
     userId?: number;
 };

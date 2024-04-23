@@ -47,16 +47,25 @@
         </a-space>
       </template>
       <template #createTime="{ record }">
-        {{ moment.utc(record.createTime).local().format("YYYY-MM-DD") }}
+        {{ moment(record.createTime).utcOffset(8).format("YYYY-MM-DD") }}
       </template>
       <template #optional="{ record }">
-        <a-space>
+        <a-space
+          v-if="
+            record.userId == loginUser.id ||
+            loginUser.userRole == ACCESS_ENUM.ADMIN
+          "
+        >
           <a-button type="primary" @click="doUpdateQuestion(record)"
             >修改
           </a-button>
-          <a-button status="danger" @click="doDeleteQuestion(record)"
-            >删除
-          </a-button>
+          <a-popconfirm
+            content="对应的提交记录也会被删除，确定删除吗？"
+            type="warning"
+            @ok="doDeleteQuestion(record)"
+          >
+            <a-button status="danger">删除</a-button>
+          </a-popconfirm>
         </a-space>
       </template>
     </a-table>
@@ -69,6 +78,8 @@ import { Question, QuestionControllerService } from "../../../generated/";
 import message from "@arco-design/web-vue/es/message";
 import { useRouter } from "vue-router";
 import moment from "moment/moment";
+import store from "@/store";
+import ACCESS_ENUM from "@/access/accessEnum";
 
 const dataList = ref([]);
 const total = ref(0);
@@ -97,7 +108,12 @@ watchEffect(() => {
   console.log("watchEffect");
 });
 
-onMounted(() => {
+//当前登录的用户
+const loginUser = ref();
+onMounted(async () => {
+  await store.dispatch("user/getLoginUser");
+  loginUser.value = store.state.user.loginUser;
+  console.log("用户信息：", loginUser.value, loginUser.value.id);
   loadData();
 });
 
@@ -190,7 +206,7 @@ const columns = [
   //   },
   // },
   {
-    title: "用户编号",
+    title: "创建者编号",
     dataIndex: "userId",
     headerCellStyle: {
       fontWeight: "bold",
@@ -251,7 +267,7 @@ const doDeleteQuestion = async (question: Question) => {
     message.success("删除成功");
     await loadData();
   } else {
-    message.success("删除失败，" + res.message);
+    message.error("删除失败，" + res.message);
   }
 };
 </script>

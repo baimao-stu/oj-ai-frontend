@@ -20,11 +20,7 @@ interface Props {
  * 给组件的 props属性默认值
  */
 const props = withDefaults(defineProps<Props>(), {
-  value: () =>
-    "public class Main {\n" +
-    "   public static void main(String[] args) {\n\n" +
-    "   }\n" +
-    "}\n",
+  value: () => "",
   language: "java",
   handleChange: (v: string) => {
     console.log("编辑器的内容：" + v);

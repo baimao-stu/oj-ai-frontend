@@ -1,6 +1,5 @@
 <template>
   <div id="userLoginView">
-    <h2 style="margin-bottom: 16px">用户注册</h2>
     <a-form
       style="max-width: 480px; margin: 0 auto"
       label-align="left"
@@ -31,9 +30,23 @@
         <a-input v-model="form.userName" placeholder="请输入用户名" />
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 120px">
-          注册
-        </a-button>
+        <a-space>
+          <a-button
+            type="primary"
+            style="min-width: 160px; margin-left: 24px"
+            @click="router.push({ path: '/user/login' })"
+          >
+            返回登录
+          </a-button>
+          <a-button
+            type="primary"
+            status="success"
+            html-type="submit"
+            style="min-width: 160px; margin-left: 24px"
+          >
+            注册
+          </a-button>
+        </a-space>
       </a-form-item>
     </a-form>
   </div>

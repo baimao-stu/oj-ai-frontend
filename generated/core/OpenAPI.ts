@@ -20,7 +20,10 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-  BASE: "http://localhost:50000",
+  // BASE: "http://localhost:8101", //微服务网关
+  BASE: "http://localhost:50000", //单体
+  // BASE: "http://accodebackend.free.idcfengye.com", //单体穿透
+  // BASE: "http://120.76.250.225:50000", //单体
   VERSION: "1.0",
   WITH_CREDENTIALS: true,
   CREDENTIALS: "include",

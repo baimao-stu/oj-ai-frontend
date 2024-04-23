@@ -44,20 +44,35 @@
       @page-change="onPageChange"
     >
       <template #judgeInfo="{ record }">
-        <span
+        <a-tag
           v-if="record.judgeInfo.message === 'Accepted'"
-          style="color: green"
-          >{{ record.judgeInfo.message }}</span
+          color="green"
+          style="font-size: 15px"
+          >{{ record.judgeInfo.message }}</a-tag
         >
-        <span v-else style="color: red">{{ record.judgeInfo.message }}</span>
+        <a-tag v-else-if="record.judgeInfo.message" color="red">{{
+          record.judgeInfo.message
+        }}</a-tag>
       </template>
       <template #status="{ record }">
-        {{ statusMap[record.status as number] }}
+        <a-tag v-if="record.status === 2" color="green" style="font-size: 15px">
+          {{ statusMap[record.status as number] }}
+        </a-tag>
+        <a-tag v-else color="red" style="font-size: 15px">
+          {{ statusMap[record.status as number] }}
+        </a-tag>
       </template>
       <template #createTime="{ record }">
-        {{
-          moment.utc(record.createTime).local().format("YYYY-MM-DD HH:mm:ss")
-        }}
+        <a-tag color="red" style="font-size: 15px">
+          {{
+            moment(record.createTime).utcOffset(8).format("YYYY-MM-DD HH:mm:ss")
+          }}
+        </a-tag>
+      </template>
+      <template #userName="{ record }">
+        <span style="font-size: 16px; color: #3380c2; font-weight: bold">
+          {{ record.userVO.userName }}
+        </span>
       </template>
     </a-table>
   </div>
@@ -95,6 +110,7 @@ const loadData = async () => {
   );
   if (res.code === 0) {
     dataList.value = res.data.records;
+    console.log("题目提交列表：", dataList.value);
     total.value = res.data.total;
   } else {
     message.error("加载失败，" + res.message);
@@ -126,7 +142,7 @@ const columns = [
     },
     bodyCellStyle: {
       color: "#3380c2",
-      fontWeight: "500",
+      fontWeight: "bold",
     },
   },
   {
@@ -137,7 +153,7 @@ const columns = [
     },
     bodyCellStyle: {
       color: "gray",
-      fontWeight: "500",
+      fontWeight: "bold",
     },
   },
   {
@@ -169,12 +185,12 @@ const columns = [
     },
     bodyCellStyle: {
       color: "gray",
-      fontWeight: "500",
+      fontWeight: "bold",
     },
   },
   {
     title: "提交者",
-    dataIndex: "userVO.userName",
+    slotName: "userName",
     headerCellStyle: {
       fontWeight: "bold",
     },

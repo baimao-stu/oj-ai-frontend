@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type BaseResponse_string_ = {
+import type { QuestionSubmitVO } from './QuestionSubmitVO';
+export type BaseResponse_QuestionSubmitVO_ = {
     code?: number;
-    data?: string;
+    data?: QuestionSubmitVO;
     message?: string;
 };
 

@@ -21,6 +21,15 @@
             <a-menu-item v-for="item in visibleRoute" :key="item.path"
               >{{ item.name }}
             </a-menu-item>
+            <a-sub-menu key="contest">
+              <template #title>比赛</template>
+              <a-menu-item key="1" @click="to_contestList"
+                >比赛列表</a-menu-item
+              >
+              <a-menu-item key="2" @click="to_my_join">我的加入</a-menu-item>
+              <a-menu-item key="3" @click="to_my_add">我的创建</a-menu-item>
+              <a-menu-item key="4" @click="to_add">创建比赛</a-menu-item>
+            </a-sub-menu>
           </a-menu>
         </div>
       </a-col>
@@ -126,6 +135,31 @@ const login_logout = async () => {
 const to_register = () => {
   router.push({
     path: "/user/register",
+    replace: true,
+  });
+};
+
+const to_contestList = () => {
+  router.push({
+    path: "/list/contest",
+    replace: true,
+  });
+};
+const to_my_join = () => {
+  router.push({
+    path: "/myJoin/contest",
+    replace: true,
+  });
+};
+const to_my_add = () => {
+  router.push({
+    path: "/myAdd/contest",
+    replace: true,
+  });
+};
+const to_add = () => {
+  router.push({
+    path: "/add/contest",
     replace: true,
   });
 };

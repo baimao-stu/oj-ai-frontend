@@ -50,7 +50,9 @@
         <span class="ratio_class">
           {{
             `${
-              record.subNum ? (record.acceptedNum / record.subNum) * 100 : "0"
+              record.subNum
+                ? ((record.acceptedNum / record.subNum) * 100).toFixed(2)
+                : "0"
             }%（${record.acceptedNum}/${record.subNum}）`
           }}
         </span>
@@ -90,6 +92,7 @@ const loadData = async () => {
   if (res.code === 0) {
     dataList.value = res.data.records;
     total.value = res.data.total;
+    console.log("题目列表：", dataList.value);
   } else {
     message.error("请求失败，" + res.message);
   }

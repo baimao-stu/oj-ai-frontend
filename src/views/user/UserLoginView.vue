@@ -31,10 +31,11 @@
             style="width: 120px"
             @click="to_register"
           >
-            注册
+            去注册
           </a-button>
         </a-space>
       </a-form-item>
+      <div style="color: gray; margin-top: 10px">管理员：admin，12345678</div>
     </a-form>
   </div>
 </template>
@@ -75,3 +76,5 @@ const to_register = async () => {
   });
 };
 </script>
+
+<style scoped></style>

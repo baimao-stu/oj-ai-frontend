@@ -109,9 +109,15 @@
               :key="index"
               :label-col-style="{ fontWeight: 'bold' }"
             >
-              <a-input
+              <!--              <a-input-->
+              <!--                v-model="judgeCaseItem.input"-->
+              <!--                placeholder="请输入测试输入用例"-->
+              <!--              />-->
+              <a-textarea
                 v-model="judgeCaseItem.input"
-                placeholder="请输入测试输入用例"
+                placeholder="每个数用一个空格隔开，最后一行不要有多余的回车"
+                style="min-width: 120px; min-height: 120px"
+                auto-size="true"
               />
             </a-form-item>
             <a-form-item
@@ -120,9 +126,15 @@
               :key="index"
               :label-col-style="{ fontWeight: 'bold' }"
             >
-              <a-input
+              <!--              <a-input-->
+              <!--                v-model="judgeCaseItem.output"-->
+              <!--                placeholder="请输入测试输出用例"-->
+              <!--              />-->
+              <a-textarea
                 v-model="judgeCaseItem.output"
-                placeholder="请输入测试输出用例"
+                placeholder="每个数用一个空格隔开，最后一行不要有多余的回车"
+                style="min-width: 120px; min-height: 120px"
+                auto-size="true"
               />
             </a-form-item>
             <a-button
