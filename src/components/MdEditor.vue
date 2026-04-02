@@ -1,9 +1,9 @@
 <template>
   <Editor
-    :value="value"
-    :mode="mode"
+    :value="props.value"
+    :mode="props.mode"
     :plugins="plugins"
-    @change="handleChange"
+    @change="props.handleChange"
   />
 </template>
 

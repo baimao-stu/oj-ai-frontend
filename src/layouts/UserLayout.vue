@@ -15,7 +15,7 @@
       <a-layout-content class="content">
         <router-view />
       </a-layout-content>
-      <a-layout-footer class="footer">© 2024 AcCode</a-layout-footer>
+      <!-- <a-layout-footer class="footer">© 2024 AcCode</a-layout-footer> -->
     </a-layout>
   </div>
 </template>

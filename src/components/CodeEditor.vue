@@ -1,45 +1,50 @@
 <template>
-  <div id="codeEditor" ref="divRef" style="min-height: 500px; height: 70vh" />
+  <div ref="divRef" class="code-editor" :style="{ minHeight, height }" />
 </template>
 
 <script setup lang="ts">
-import { defineProps, onMounted, ref, toRaw, watch, withDefaults } from "vue";
+import {
+  defineExpose,
+  defineProps,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  toRaw,
+  watch,
+  withDefaults,
+} from "vue";
 import * as monaco from "monaco-editor";
 
-/**
- * 将组件的props抽象出一个单独的接口
- */
 interface Props {
   value: string;
   language?: string;
   readonly?: boolean;
+  height?: string;
+  minHeight?: string;
   handleChange: (v: string) => void;
 }
 
-/**
- * 给组件的 props属性默认值
- */
 const props = withDefaults(defineProps<Props>(), {
   value: () => "",
   language: "java",
-  handleChange: (v: string) => {
-    console.log("编辑器的内容：" + v);
-  },
+  readonly: false,
+  height: "70vh",
+  minHeight: "500px",
+  handleChange: () => undefined,
 });
 
-const divRef = ref(); //div的引用
-const codeEditor = ref(); //代码编辑器的引用
+const divRef = ref<HTMLElement | null>(null);
+const codeEditor = ref<monaco.editor.IStandaloneCodeEditor | null>(null);
+const isSyncingFromProps = ref(false);
 
 onMounted(() => {
-  //div加载完成时再挂载代码编辑器
   if (!divRef.value) {
     return;
   }
-  //创建代码编辑器，并配置属性
   codeEditor.value = monaco.editor.create(divRef.value, {
     value: props.value,
     language: props.language,
-    // theme: "vs-dark",
     automaticLayout: true,
     colorDecorators: true,
     minimap: {
@@ -51,34 +56,86 @@ onMounted(() => {
       horizontal: "hidden",
     },
   });
-  // 监听代码编辑器内容变化
+
   codeEditor.value.onDidChangeModelContent(() => {
-    props.handleChange(toRaw(codeEditor.value).getValue());
+    if (isSyncingFromProps.value) {
+      return;
+    }
+    props.handleChange(toRaw(codeEditor.value)?.getValue() || "");
+  });
+
+  nextTick(() => {
+    toRaw(codeEditor.value)?.layout();
   });
 });
 
-//语言变化时设置代码编辑器的语言环境
+onBeforeUnmount(() => {
+  toRaw(codeEditor.value)?.dispose();
+  codeEditor.value = null;
+});
+
 watch(
-  () => [props.language, props.readonly],
-  () => {
-    if (codeEditor.value) {
-      monaco.editor.setModelLanguage(
-        toRaw(codeEditor.value).getModel(),
-        props.language
-      );
+  () => props.language,
+  (language) => {
+    const editor = toRaw(codeEditor.value);
+    const model = editor?.getModel();
+    if (!editor || !model) {
+      return;
     }
+    monaco.editor.setModelLanguage(model, language);
   }
 );
 
-/**
- * 重置编辑器内部代码
- */
+watch(
+  () => props.readonly,
+  (readonly) => {
+    const editor = toRaw(codeEditor.value);
+    if (!editor) {
+      return;
+    }
+    editor.updateOptions({
+      readOnly: readonly,
+    });
+  }
+);
+
+watch(
+  () => props.value,
+  (value) => {
+    const editor = toRaw(codeEditor.value);
+    if (!editor || editor.getValue() === value) {
+      return;
+    }
+    isSyncingFromProps.value = true;
+    editor.setValue(value || "");
+    isSyncingFromProps.value = false;
+  }
+);
+
+watch(
+  () => [props.height, props.minHeight],
+  async () => {
+    await nextTick();
+    toRaw(codeEditor.value)?.layout();
+  }
+);
+
 const resetCode = () => {
-  console.log("reset code");
-  toRaw(codeEditor.value).setValue("");
+  toRaw(codeEditor.value)?.setValue("");
 };
-// eslint-disable-next-line no-undef
+
+const layoutEditor = () => {
+  toRaw(codeEditor.value)?.layout();
+};
+
 defineExpose({
+  layoutEditor,
   resetCode,
 });
 </script>
+
+<style scoped>
+.code-editor {
+  width: 100%;
+}
+</style>

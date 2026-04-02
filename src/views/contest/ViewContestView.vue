@@ -72,7 +72,7 @@
             :disabled="contestStatus === 0 || (contestStatus === 1 && !disable)"
           >
             <a-list size="large" :bordered="false" :scrollbar="true">
-              <div style="overflow-x: scroll">
+              <div class="rank-scroll-wrapper">
                 <a-list-item style="width: 150vw">
                   <a-space>
                     <div class="list1">名次</div>
@@ -601,6 +601,11 @@ const editContest = () => {
   min-width: 96px;
   line-height: 64px;
   text-align: center;
+}
+.rank-scroll-wrapper {
+  max-width: 100%;
+  max-height: 60vh;
+  overflow: auto;
 }
 .contestInfo {
   display: flex;

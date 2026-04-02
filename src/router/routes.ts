@@ -10,11 +10,11 @@ import QuestionsView from "@/views/question/QuestionsView.vue";
 import ViewQuestionView from "@/views/question/ViewQuestionView.vue";
 import QuestionSubmitView from "@/views/question/QuestionSubmitView.vue";
 import SampleView from "@/views/SampleView.vue";
-import ContestListView from "@/views/ contest/ContestListView.vue";
-import MyContestJoinView from "@/views/ contest/MyContestJoinView.vue";
-import MyContestListView from "@/views/ contest/MyContestListView.vue";
-import AddContestView from "@/views/ contest/AddContestView.vue";
-import ViewContestView from "@/views/ contest/ViewContestView.vue";
+import ContestListView from "@/views/contest/ContestListView.vue";
+import MyContestJoinView from "@/views/contest/MyContestJoinView.vue";
+import MyContestListView from "@/views/contest/MyContestListView.vue";
+import AddContestView from "@/views/contest/AddContestView.vue";
+import ViewContestView from "@/views/contest/ViewContestView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -55,7 +55,6 @@ export const routes: Array<RouteRecordRaw> = [
     name: "浏览题目",
     component: ViewQuestionView,
     meta: {
-      access: ACCESS_ENUM.USER,
       hidden: true,
     },
     props: true,
