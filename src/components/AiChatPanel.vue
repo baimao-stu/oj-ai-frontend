@@ -1346,10 +1346,13 @@ onBeforeUnmount(() => {
 .msg-content {
   width: fit-content;
   max-width: 88%;
+  min-width: 0;
   border-radius: 14px;
   padding: 14px;
   background: var(--ai-bg);
   border: 1px solid var(--ai-border);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .user .msg-content {
@@ -1600,6 +1603,20 @@ onBeforeUnmount(() => {
   border: 1px solid var(--ai-border);
   border-radius: 10px;
   overflow: hidden;
+}
+
+.msg-content :deep(.bytemd),
+.msg-content :deep(.markdown-body) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.msg-content :deep(.markdown-body pre) {
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1280px) {
