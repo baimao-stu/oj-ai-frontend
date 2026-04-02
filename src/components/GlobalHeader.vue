@@ -51,7 +51,6 @@
                       store.state.user?.loginUser?.userName ? "退出" : "登录"
                     }}
                   </a-doption>
-                  <a-doption @click="to_register">注册</a-doption>
                 </template>
               </a-dropdown>
             </div>

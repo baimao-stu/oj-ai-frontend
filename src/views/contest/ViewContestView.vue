@@ -536,9 +536,11 @@ const toQuestionPage = (question: Question) => {
   if (contestStatus.value === 1) {
     window.open(
       `${COMMON.FRONT_END_LOCALPATH}/view/question/${question.id}/${contest.value.id}`
+      // `${COMMON.FRONT_END_REMOTPATH}/view/question/${question.id}/${contest.value.id}`
     );
   } else {
     window.open(`${COMMON.FRONT_END_LOCALPATH}/view/question/${question.id}`);
+    // `${COMMON.FRONT_END_REMOTPATH}/view/question/${question.id}/${contest.value.id}`;
   }
 
   // router.push({

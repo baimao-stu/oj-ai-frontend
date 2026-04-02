@@ -43,7 +43,7 @@
               </template>
             </a-card>
           </a-tab-pane>
-          <a-tab-pane key="answer" title="题解">题解</a-tab-pane>
+          <!--          <a-tab-pane key="answer" title="题解">题解</a-tab-pane>-->
           <a-tab-pane key="submissions" title="提交记录">
             <div id="submissionsTable" v-if="showSubmissionsTable">
               <a-divider size="0" />
@@ -203,6 +203,7 @@
                 >
                   <a-option>java</a-option>
                   <a-option>cpp</a-option>
+                  <a-option>python</a-option>
                 </a-select>
               </a-form-item>
             </a-form>
