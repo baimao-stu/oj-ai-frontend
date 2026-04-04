@@ -44,7 +44,7 @@
             >
               <div class="msg-role">
                 <span class="role-dot" />
-                {{ msg.role === "user" ? "你" : "ACoder" }}
+                {{ msg.role === "user" ? userName : "ACoder" }}
               </div>
 
               <div class="msg-content">
@@ -80,21 +80,12 @@
                   class="assistant-details"
                 >
                   <div
-                    v-if="msg.reasoningSummary"
-                    class="detail-card reasoning-card"
-                  >
-                    <div class="detail-title">思考过程（摘要）</div>
-                    <div v-if="msg.streaming" class="plain-text detail-text">
-                      {{ msg.reasoningSummary }}
-                    </div>
-                    <MdViewer v-else :value="msg.reasoningSummary || ''" />
-                  </div>
-
-                  <div
-                    v-if="msg.toolEvents && msg.toolEvents.length"
+                    v-if="
+                      !msg.streaming && msg.toolEvents && msg.toolEvents.length
+                    "
                     class="detail-card tool-card"
                   >
-                    <div class="detail-title">工具轨迹</div>
+                    <div class="detail-title">思考过程</div>
                     <div class="tool-event-list">
                       <div
                         v-for="(toolEvent, toolIndex) in msg.toolEvents"
@@ -238,7 +229,7 @@
               >
                 <div class="msg-role">
                   <span class="role-dot" />
-                  {{ msg.role === "user" ? "你" : "ACoder AI" }}
+                  {{ msg.role === "user" ? userName : "ACoder AI" }}
                 </div>
 
                 <div class="msg-content">
@@ -274,18 +265,11 @@
                     class="assistant-details"
                   >
                     <div
-                      v-if="msg.reasoningSummary"
-                      class="detail-card reasoning-card"
-                    >
-                      <div class="detail-title">思考过程（摘要）</div>
-                      <div v-if="msg.streaming" class="plain-text detail-text">
-                        {{ msg.reasoningSummary }}
-                      </div>
-                      <MdViewer v-else :value="msg.reasoningSummary || ''" />
-                    </div>
-
-                    <div
-                      v-if="msg.toolEvents && msg.toolEvents.length"
+                      v-if="
+                        !msg.streaming &&
+                        msg.toolEvents &&
+                        msg.toolEvents.length
+                      "
                       class="detail-card tool-card"
                     >
                       <div class="detail-title">工具轨迹</div>
@@ -320,9 +304,7 @@
                       class="plain-text streaming-text"
                       :class="{ 'is-placeholder': !msg.content }"
                     >
-                      {{
-                        msg.content || "AI 正在整理最终答案，思考过程已折叠…"
-                      }}
+                      {{ msg.content || "AI 正在整理最终答案..." }}
                     </div>
                     <MdViewer v-else :value="msg.content || ''" />
                   </template>
@@ -344,9 +326,7 @@
               allow-clear
             />
             <div class="ai-send-row">
-              <span class="tips">
-                Shift+Enter 换行。默认只展示最终结果，思考与工具轨迹可按需展开。
-              </span>
+              <span class="tips"> 发消息... </span>
               <div class="send-actions">
                 <label class="agent-switch" :class="{ active: agentEnabled }">
                   <a-switch v-model="agentEnabled" size="small" />
@@ -371,16 +351,16 @@
 </template>
 
 <script setup lang="ts">
+/* global defineProps, withDefaults */
 import {
   computed,
-  defineProps,
   nextTick,
   onBeforeUnmount,
   onMounted,
   ref,
   watch,
-  withDefaults,
 } from "vue";
+import { useStore } from "vuex";
 import message from "@arco-design/web-vue/es/message";
 import MdViewer from "@/components/MdViewer.vue";
 import { OpenAPI } from "../../generated/core/OpenAPI";
@@ -408,7 +388,6 @@ interface ChatMessage {
   mode?: string;
   rawContent: string;
   content: string;
-  reasoningSummary: string;
   reasoningStartedAt?: number;
   reasoningDurationMs?: number;
   streaming?: boolean;
@@ -418,14 +397,16 @@ interface ChatMessage {
 
 interface ParsedAssistantPayload {
   finalContent: string;
-  reasoningSummary: string;
   hasStructuredPayload: boolean;
+  visibleContent: string;
 }
 
-const ANALYSIS_OPEN = "<analysis>";
-const ANALYSIS_CLOSE = "</analysis>";
 const FINAL_OPEN = "<final>";
 const FINAL_CLOSE = "</final>";
+const CONTENT_TYPING_INTERVAL_MS = 16;
+const REASONING_TYPING_INTERVAL_MS = 20;
+const CONTENT_TYPING_STEP = 2;
+const REASONING_TYPING_STEP = 3;
 
 const props = withDefaults(defineProps<Props>(), {
   contestId: "",
@@ -436,6 +417,9 @@ const props = withDefaults(defineProps<Props>(), {
   language: "java",
   embedded: false,
 });
+
+const store = useStore();
+const userName = computed(() => store.state.user?.loginUser?.userName || "你");
 
 const visible = ref(false);
 const loadingHistory = ref(false);
@@ -448,6 +432,10 @@ const messages = ref<ChatMessage[]>([]);
 const inputMessage = ref("");
 const messageBoxRef = ref<HTMLElement | null>(null);
 let abortController: AbortController | null = null;
+const contentTypingQueue = new Map<number, string>();
+const reasoningTypingQueue = new Map<number, string>();
+const contentTypingTimer = new Map<number, number>();
+const reasoningTypingTimer = new Map<number, number>();
 
 const numericQuestionId = computed(() => Number(props.questionId || 0));
 const numericContestId = computed(() => Number(props.contestId || 0));
@@ -468,6 +456,7 @@ const loadSession = async () => {
   if (!numericQuestionId.value) {
     return;
   }
+  clearTypingState();
   loadingHistory.value = true;
   try {
     const res = await requestJson("/api/ai/chat/session/get", {
@@ -501,6 +490,7 @@ const clearCurrentSession = async () => {
     contestId: numericContestId.value || 0,
   });
   if (res.code === 0) {
+    clearTypingState();
     messages.value = [];
     message.success("会话已清空");
   } else {
@@ -587,10 +577,6 @@ const sendMessage = async () => {
                 typeof normalRes.data.finalContent === "string"
                   ? normalRes.data.finalContent
                   : current.content,
-              reasoningSummary:
-                typeof normalRes.data.reasoningSummary === "string"
-                  ? normalRes.data.reasoningSummary
-                  : current.reasoningSummary,
               reasoningDurationMs:
                 typeof normalRes.data.reasoningDurationMs === "number"
                   ? normalRes.data.reasoningDurationMs
@@ -627,6 +613,7 @@ const sendMessage = async () => {
       }));
     }
   } finally {
+    await waitForTypingComplete(assistantIndex);
     sending.value = false;
     generating.value = false;
     abortController = null;
@@ -686,7 +673,12 @@ const handleSseFrame = async (
 ): Promise<boolean> => {
   const { eventType, dataRaw } = parseSseFrame(frame);
   if (eventType === "delta") {
-    appendAssistantContent(assistantIndex, parseSseData(dataRaw));
+    const deltaText = parseSseData(dataRaw);
+    if (shouldCollapseThinkingPanel(assistantIndex)) {
+      flushTypingChannel(assistantIndex, "reasoning");
+      collapseAssistantDetails(assistantIndex);
+    }
+    enqueueTypingText(assistantIndex, "content", deltaText);
     await scrollToBottom();
     return false;
   }
@@ -703,7 +695,7 @@ const handleSseFrame = async (
   }
   if (eventType === "done") {
     const donePayload = safeParseJson(dataRaw);
-    finalizeAssistantMessage(
+    await finalizeAssistantMessage(
       assistantIndex,
       donePayload && typeof donePayload === "object"
         ? (donePayload as Record<string, unknown>)
@@ -739,29 +731,56 @@ const extractSseValue = (line: string, field: string): string => {
   return value.startsWith(" ") ? value.slice(1) : value;
 };
 
-const appendAssistantContent = (assistantIndex: number, chunk: string) => {
-  if (!chunk) {
-    return;
-  }
-  replaceMessage(assistantIndex, (current) =>
-    normalizeAssistantMessage({
-      ...current,
-      rawContent: `${current.rawContent || ""}${chunk}`,
-    })
-  );
-};
-
 const appendToolEvent = (assistantIndex: number, event: ToolEvent) => {
   replaceMessage(assistantIndex, (current) => ({
     ...current,
     toolEvents: [...(current.toolEvents || []), event],
+    showDetails: true,
   }));
+  enqueueTypingText(
+    assistantIndex,
+    "reasoning",
+    formatToolEventForTyping(event)
+  );
 };
 
-const finalizeAssistantMessage = (
+const finalizeAssistantMessage = async (
   assistantIndex: number,
   payload: Record<string, unknown>
 ) => {
+  const targetFinalContent =
+    typeof payload.finalContent === "string" && payload.finalContent.length > 0
+      ? payload.finalContent
+      : typeof payload.content === "string"
+      ? payload.content
+      : "";
+  const currentVisibleContent = messages.value[assistantIndex]?.content || "";
+  const queuedContent = contentTypingQueue.get(assistantIndex) || "";
+  const currentTargetContent = `${currentVisibleContent}${queuedContent}`;
+
+  if (targetFinalContent) {
+    if (targetFinalContent.startsWith(currentTargetContent)) {
+      enqueueTypingText(
+        assistantIndex,
+        "content",
+        targetFinalContent.slice(currentTargetContent.length)
+      );
+    } else if (targetFinalContent !== currentTargetContent) {
+      clearTypingChannel(assistantIndex, "content");
+      replaceMessage(assistantIndex, (current) =>
+        normalizeAssistantMessage({
+          ...current,
+          rawContent: targetFinalContent,
+          content: "",
+        })
+      );
+    }
+  }
+
+  flushTypingChannel(assistantIndex, "reasoning");
+  collapseAssistantDetails(assistantIndex);
+  await waitForTypingComplete(assistantIndex);
+
   replaceMessage(assistantIndex, (current) =>
     normalizeAssistantMessage({
       ...current,
@@ -774,23 +793,18 @@ const finalizeAssistantMessage = (
       rawContent:
         typeof payload.rawContent === "string" && payload.rawContent.length > 0
           ? payload.rawContent
-          : typeof payload.content === "string" && payload.content.length > 0
-          ? payload.content
-          : current.rawContent,
-      content:
-        typeof payload.finalContent === "string" &&
-        payload.finalContent.length > 0
-          ? payload.finalContent
-          : current.content,
-      reasoningSummary:
-        typeof payload.reasoningSummary === "string"
-          ? payload.reasoningSummary
-          : current.reasoningSummary,
+          : targetFinalContent || current.rawContent,
+      content: targetFinalContent || current.content,
       reasoningDurationMs:
         typeof payload.reasoningDurationMs === "number"
           ? payload.reasoningDurationMs
           : resolveReasoningDurationMs(current),
       streaming: false,
+      toolEvents:
+        current.toolEvents.length > 0
+          ? current.toolEvents
+          : parseToolEvents(payload.toolCalls),
+      showDetails: false,
     })
   );
 };
@@ -825,8 +839,27 @@ const toggleMessageDetails = (index: number) => {
   }));
 };
 
-const hasMessageDetails = (msg: ChatMessage) =>
-  !!msg.reasoningSummary || !!msg.toolEvents?.length;
+const collapseAssistantDetails = (index: number) => {
+  replaceMessage(index, (current) => ({
+    ...current,
+    showDetails: false,
+  }));
+};
+
+const shouldCollapseThinkingPanel = (assistantIndex: number) => {
+  const current = messages.value[assistantIndex];
+  if (!current || current.mode !== "agent") {
+    return false;
+  }
+  const hasThinkingTrace = !!current.toolEvents?.length;
+  const hasStartedFinalContent =
+    !!current.content ||
+    !!current.rawContent ||
+    hasPendingTyping(assistantIndex, "content");
+  return hasThinkingTrace && !hasStartedFinalContent;
+};
+
+const hasMessageDetails = (msg: ChatMessage) => !!msg.toolEvents?.length;
 
 const formatReasoningDuration = (msg: ChatMessage) => {
   const durationMs = resolveReasoningDurationMs(msg);
@@ -842,14 +875,11 @@ const getTraceToggleLabel = (msg: ChatMessage) => {
     return duration ? `思考中 ${duration}` : "思考中";
   }
   const duration = formatReasoningDuration(msg);
-  return duration ? `思考 ${duration}` : "思考过程";
+  return duration ? `思考 ${duration}` : "思考已完成";
 };
 
 const buildTraceMeta = (msg: ChatMessage) => {
   const parts: string[] = [];
-  if (msg.reasoningSummary) {
-    parts.push(msg.showDetails ? "点击折叠" : "点击查看");
-  }
   if (msg.toolEvents?.length) {
     parts.push(`${msg.toolEvents.length} 个工具事件`);
   }
@@ -895,7 +925,6 @@ const createUserMessage = (content: string): ChatMessage => ({
   mode: mode.value,
   rawContent: content,
   content,
-  reasoningSummary: "",
   reasoningDurationMs: undefined,
   streaming: false,
   toolEvents: [],
@@ -911,7 +940,6 @@ const createAssistantMessage = (
     mode: mode.value,
     rawContent,
     content: "",
-    reasoningSummary: "",
     reasoningStartedAt: undefined,
     reasoningDurationMs: undefined,
     streaming: false,
@@ -941,10 +969,6 @@ const buildHistoryMessage = (item: Record<string, unknown>): ChatMessage => {
             : typeof item.content === "string"
             ? item.content
             : "",
-        reasoningSummary:
-          typeof item.reasoningSummary === "string"
-            ? item.reasoningSummary
-            : "",
         reasoningDurationMs:
           typeof item.reasoningDurationMs === "number"
             ? item.reasoningDurationMs
@@ -963,7 +987,6 @@ const buildHistoryMessage = (item: Record<string, unknown>): ChatMessage => {
     mode: typeof item.mode === "string" ? item.mode : undefined,
     rawContent: typeof item.content === "string" ? item.content : "",
     content: typeof item.content === "string" ? item.content : "",
-    reasoningSummary: "",
     reasoningDurationMs: undefined,
     streaming: false,
     toolEvents: [],
@@ -972,42 +995,33 @@ const buildHistoryMessage = (item: Record<string, unknown>): ChatMessage => {
 };
 
 const normalizeAssistantMessage = (messageState: ChatMessage): ChatMessage => {
-  const parsed = parseAssistantPayload(messageState.rawContent || "");
+  const parsed = parseAssistantPayload(
+    messageState.rawContent || "",
+    messageState.streaming
+  );
   const finalContent = parsed.hasStructuredPayload
-    ? parsed.finalContent
-    : messageState.content || messageState.rawContent || "";
-  const reasoningSummary =
-    parsed.reasoningSummary || messageState.reasoningSummary;
+    ? messageState.streaming
+      ? parsed.visibleContent
+      : parsed.finalContent || messageState.content || ""
+    : messageState.rawContent || messageState.content || "";
 
   return {
     ...messageState,
     content: finalContent,
-    reasoningSummary,
-    showDetails:
-      messageState.showDetails &&
-      (reasoningSummary.length > 0 || messageState.toolEvents.length > 0),
+    showDetails: messageState.showDetails && messageState.toolEvents.length > 0,
   };
 };
 
-const parseAssistantPayload = (raw: string): ParsedAssistantPayload => {
+const parseAssistantPayload = (
+  raw: string,
+  streaming = false
+): ParsedAssistantPayload => {
   const normalized = raw || "";
   const lower = normalized.toLowerCase();
 
-  const analysisOpenIndex = lower.indexOf(ANALYSIS_OPEN);
-  const analysisCloseIndex = lower.indexOf(ANALYSIS_CLOSE);
   const finalOpenIndex = lower.indexOf(FINAL_OPEN);
   const finalCloseIndex = lower.indexOf(FINAL_CLOSE);
-  const hasStructuredPayload = analysisOpenIndex >= 0 || finalOpenIndex >= 0;
-
-  const reasoningSummary =
-    analysisOpenIndex >= 0
-      ? normalized
-          .slice(
-            analysisOpenIndex + ANALYSIS_OPEN.length,
-            analysisCloseIndex >= 0 ? analysisCloseIndex : normalized.length
-          )
-          .trim()
-      : "";
+  const hasStructuredPayload = finalOpenIndex >= 0;
 
   let finalContent = "";
   if (finalOpenIndex >= 0) {
@@ -1016,15 +1030,17 @@ const parseAssistantPayload = (raw: string): ParsedAssistantPayload => {
         finalOpenIndex + FINAL_OPEN.length,
         finalCloseIndex >= 0 ? finalCloseIndex : normalized.length
       )
-      .trim();
+      .trimStart();
   } else if (!hasStructuredPayload) {
     finalContent = normalized;
   }
 
+  const visibleContent = finalContent;
+
   return {
     finalContent,
-    reasoningSummary,
     hasStructuredPayload,
+    visibleContent,
   };
 };
 
@@ -1033,10 +1049,27 @@ const parseSseData = (raw: string): string => {
   if (typeof parsed === "string") {
     return parsed;
   }
-  if (parsed === null || parsed === undefined) {
-    return raw;
+  if (!parsed || typeof parsed !== "object") {
+    return typeof raw === "string" ? raw : "";
   }
-  return JSON.stringify(parsed);
+
+  const payload = parsed as Record<string, unknown>;
+  const textCandidateKeys = [
+    "delta",
+    "content",
+    "text",
+    "chunk",
+    "message",
+    "rawContent",
+    "finalContent",
+  ];
+  for (const key of textCandidateKeys) {
+    if (typeof payload[key] === "string") {
+      return payload[key] as string;
+    }
+  }
+
+  return typeof raw === "string" ? raw : "";
 };
 
 const safeParseJson = (raw: string): unknown => {
@@ -1053,6 +1086,183 @@ const parseToolEvents = (toolCallsRaw: unknown): ToolEvent[] => {
   }
   const parsed = safeParseJson(toolCallsRaw);
   return Array.isArray(parsed) ? (parsed as ToolEvent[]) : [];
+};
+
+const getTypingQueueMap = (channel: "content" | "reasoning") =>
+  channel === "content" ? contentTypingQueue : reasoningTypingQueue;
+
+const getTypingTimerMap = (channel: "content" | "reasoning") =>
+  channel === "content" ? contentTypingTimer : reasoningTypingTimer;
+
+const getTypingInterval = (channel: "content" | "reasoning") =>
+  channel === "content"
+    ? CONTENT_TYPING_INTERVAL_MS
+    : REASONING_TYPING_INTERVAL_MS;
+
+const resolveTypingStep = (channel: "content" | "reasoning", text: string) => {
+  const baseStep =
+    channel === "content" ? CONTENT_TYPING_STEP : REASONING_TYPING_STEP;
+  if (text.length > 48) {
+    return baseStep + 2;
+  }
+  if (text.length > 24) {
+    return baseStep + 1;
+  }
+  return baseStep;
+};
+
+const enqueueTypingText = (
+  assistantIndex: number,
+  channel: "content" | "reasoning",
+  text: string
+) => {
+  if (!text) {
+    return;
+  }
+  const queueMap = getTypingQueueMap(channel);
+  queueMap.set(assistantIndex, `${queueMap.get(assistantIndex) || ""}${text}`);
+  ensureTypingLoop(assistantIndex, channel);
+};
+
+const ensureTypingLoop = (
+  assistantIndex: number,
+  channel: "content" | "reasoning"
+) => {
+  const timerMap = getTypingTimerMap(channel);
+  if (timerMap.has(assistantIndex)) {
+    return;
+  }
+
+  const run = async () => {
+    timerMap.delete(assistantIndex);
+    const queueMap = getTypingQueueMap(channel);
+    const pending = queueMap.get(assistantIndex) || "";
+    if (!pending) {
+      return;
+    }
+
+    const step = resolveTypingStep(channel, pending);
+    const chunk = pending.slice(0, step);
+    const rest = pending.slice(step);
+    if (rest) {
+      queueMap.set(assistantIndex, rest);
+    } else {
+      queueMap.delete(assistantIndex);
+    }
+
+    if (channel === "content") {
+      applyContentTypingChunk(assistantIndex, chunk);
+    } else {
+      applyReasoningTypingChunk(assistantIndex, chunk);
+    }
+    await scrollToBottom();
+
+    if ((queueMap.get(assistantIndex) || "").length > 0) {
+      const timerId = window.setTimeout(run, getTypingInterval(channel));
+      timerMap.set(assistantIndex, timerId);
+    }
+  };
+
+  const timerId = window.setTimeout(run, getTypingInterval(channel));
+  timerMap.set(assistantIndex, timerId);
+};
+
+const applyContentTypingChunk = (assistantIndex: number, chunk: string) => {
+  replaceMessage(assistantIndex, (current) =>
+    normalizeAssistantMessage({
+      ...current,
+      rawContent: `${current.rawContent || ""}${chunk}`,
+      content: "",
+    })
+  );
+};
+
+const applyReasoningTypingChunk = (assistantIndex: number, chunk: string) => {
+  if (!chunk) {
+    return;
+  }
+  replaceMessage(assistantIndex, (current) => ({
+    ...current,
+    showDetails: true,
+  }));
+};
+
+const flushTypingChannel = (
+  assistantIndex: number,
+  channel: "content" | "reasoning"
+) => {
+  const timerMap = getTypingTimerMap(channel);
+  const timerId = timerMap.get(assistantIndex);
+  if (timerId !== undefined) {
+    window.clearTimeout(timerId);
+    timerMap.delete(assistantIndex);
+  }
+
+  const queueMap = getTypingQueueMap(channel);
+  const pending = queueMap.get(assistantIndex) || "";
+  if (!pending) {
+    return;
+  }
+  queueMap.delete(assistantIndex);
+
+  if (channel === "content") {
+    applyContentTypingChunk(assistantIndex, pending);
+  } else {
+    applyReasoningTypingChunk(assistantIndex, pending);
+  }
+};
+
+const clearTypingChannel = (
+  assistantIndex: number,
+  channel: "content" | "reasoning"
+) => {
+  const timerMap = getTypingTimerMap(channel);
+  const timerId = timerMap.get(assistantIndex);
+  if (timerId !== undefined) {
+    window.clearTimeout(timerId);
+    timerMap.delete(assistantIndex);
+  }
+  getTypingQueueMap(channel).delete(assistantIndex);
+};
+
+const hasPendingTyping = (
+  assistantIndex: number,
+  channel?: "content" | "reasoning"
+): boolean => {
+  if (!channel) {
+    return (
+      hasPendingTyping(assistantIndex, "content") ||
+      hasPendingTyping(assistantIndex, "reasoning")
+    );
+  }
+  const queueMap = getTypingQueueMap(channel);
+  const timerMap = getTypingTimerMap(channel);
+  return (
+    !!(queueMap.get(assistantIndex) || "").length ||
+    timerMap.has(assistantIndex)
+  );
+};
+
+const waitForTypingComplete = async (assistantIndex: number) => {
+  while (hasPendingTyping(assistantIndex)) {
+    await new Promise((resolve) => window.setTimeout(resolve, 12));
+  }
+};
+
+const clearTypingState = () => {
+  contentTypingTimer.forEach((timerId) => window.clearTimeout(timerId));
+  reasoningTypingTimer.forEach((timerId) => window.clearTimeout(timerId));
+  contentTypingQueue.clear();
+  reasoningTypingQueue.clear();
+  contentTypingTimer.clear();
+  reasoningTypingTimer.clear();
+};
+
+const formatToolEventForTyping = (event: ToolEvent) => {
+  const toolName = event.toolName || "tool";
+  const status = event.status || "running";
+  const summary = event.summary || "Tool call completed";
+  return `[${toolName} | ${status}] ${summary}\n`;
 };
 
 const requestJson = async (
@@ -1104,6 +1314,7 @@ onBeforeUnmount(() => {
     abortController.abort();
     abortController = null;
   }
+  clearTypingState();
 });
 </script>
 
