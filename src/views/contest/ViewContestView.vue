@@ -2,11 +2,7 @@
   <div id="ViewContestView">
     <a-row :gutter="[24, 24]">
       <a-col :md="17" :xs="24">
-        <a-tabs
-          :active-key="tabsKey"
-          @tab-click="onTabClick"
-          @change="onTabClick(tabsKey)"
-        >
+        <a-tabs :active-key="tabsKey" @change="onTabClick">
           <a-tab-pane key="contest" title="比赛说明">
             <a-card v-if="contest" :title="contest.title">
               <MdViewer :value="contest.description || ''" />
@@ -73,7 +69,7 @@
           >
             <a-list size="large" :bordered="false" :scrollbar="true">
               <div class="rank-scroll-wrapper">
-                <a-list-item style="width: 150vw">
+                <a-list-item style="width: max-content; min-width: 100%">
                   <a-space>
                     <div class="list1">名次</div>
                     <div class="list1">参赛者</div>
@@ -94,7 +90,7 @@
                 </a-list-item>
 
                 <a-list-item
-                  style="width: 150vw"
+                  style="width: max-content; min-width: 100%"
                   v-for="(item, index) of rankList"
                   :key="index"
                 >
@@ -103,7 +99,9 @@
                       style="font-weight: bold; color: #404040"
                       class="list1"
                     >
-                      #{{ index + 1 }}
+                      #{{
+                        (rankParam.current - 1) * rankParam.pageSize + index + 1
+                      }}
                     </div>
                     <div
                       style="font-weight: bold; color: #52c31a"
@@ -115,32 +113,51 @@
                       style="font-weight: bold; color: #3380c2"
                       class="list1"
                     >
-                      {{ item?.acNum }}
+                      {{ item?.contestRankSnapshot?.acceptedNum ?? 0 }}
                     </div>
                     <div
                       style="font-weight: bold; color: #404040"
                       class="list1"
                     >
-                      {{ item?.allTime }}ms
+                      {{ item?.contestRankSnapshot?.totalTime ?? 0 }}ms
                     </div>
                     <div
-                      class="rank-content"
-                      v-for="(judgeInfo, index) of item.submitStatusList"
-                      :key="index"
+                      style="
+                        display: flex;
+                        justify-content: start;
+                        height: 64px;
+                      "
                     >
-                      <div v-if="judgeInfo">
-                        <div
-                          v-if="judgeInfo.message === 'Accepted'"
-                          style="
-                            background: #d8eec6;
-                            color: #52c361;
-                            font-weight: bold;
-                          "
-                        >
-                          {{ judgeInfo.time }}ms
-                        </div>
-                        <div v-else style="color: #e94c3c; font-weight: bold">
-                          {{ judgeInfo.time ?? 0 }}ms
+                      <div
+                        class="rank-content"
+                        v-for="(judgeInfo, index) of item.submitStatusList"
+                        :key="index"
+                      >
+                        <div v-if="judgeInfo" style="height: 100%; width: 100%">
+                          <div
+                            v-if="judgeInfo.message === 'Accepted'"
+                            style="
+                              background: #d8eec6;
+                              color: #52c361;
+                              font-weight: bold;
+                              height: 100%;
+                              width: 100%;
+                            "
+                          >
+                            {{ judgeInfo.time }}ms
+                          </div>
+                          <div
+                            v-else
+                            style="
+                              background: #ffe3e0;
+                              color: #e94c3c;
+                              font-weight: bold;
+                              height: 100%;
+                              width: 100%;
+                            "
+                          >
+                            {{ judgeInfo.time ?? 0 }}ms
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -148,6 +165,17 @@
                 </a-list-item>
               </div>
             </a-list>
+            <div
+              style="display: flex; justify-content: flex-end; margin-top: 20px"
+            >
+              <a-pagination
+                :total="rankTotal"
+                :current="rankParam.current"
+                :page-size="RANK_PAGE_SIZE"
+                @change="onRankPageChange"
+                show-total
+              />
+            </div>
           </a-tab-pane>
         </a-tabs>
       </a-col>
@@ -467,17 +495,25 @@ const loadData2 = async () => {
  * 卡片3：加载排行榜
  */
 const rankList = ref(); //后端获取的排名信息
+const rankTotal = ref(0); //排行榜总条数
+const RANK_PAGE_SIZE = 50;
 const rankParam = ref<ContestUserVOQueryRequest>({
   contestId: props.id as any,
   current: 1,
-  pageSize: 5,
+  pageSize: RANK_PAGE_SIZE,
 });
+const onRankPageChange = (page: number) => {
+  rankParam.value.current = page;
+  loadData3();
+};
+
 const loadData3 = async () => {
   const res = await ContestControllerService.listRankByContestIdByPageUsingPost(
     rankParam.value
   );
   if (res.code === 0) {
-    rankList.value = res.data.records;
+    rankList.value = res.data.records ?? [];
+    rankTotal.value = Number(res.data.total) || 0;
     console.log("排名情况：", rankList.value);
     /**
      * 题目顺序与用户的提交记录匹配
@@ -487,12 +523,14 @@ const loadData3 = async () => {
       /**
        * 当前的判题记录是由题目id映射的，不是比赛题目的顺序
        */
-      const questionIdSubmitMap = new Map(
-        Object.entries(rankList.value[j].questionSubmitStatus)
-      );
+      const questionStatus =
+        rankList.value[j]?.contestRankSnapshot?.questionStatus ?? {};
+      const questionIdSubmitMap = new Map(Object.entries(questionStatus));
       for (let i = 0; i < contestQuestionList.value.length; i++) {
         const question = contestQuestionList.value[i];
-        const judgeInfo = questionIdSubmitMap.get(question.id);
+        const judgeInfo =
+          questionIdSubmitMap.get(question.id) ??
+          questionIdSubmitMap.get(String(question.id));
         console.log("judgeInfo:", judgeInfo, typeof judgeInfo);
         submitStatusList.push(judgeInfo);
       }
@@ -594,17 +632,22 @@ const editContest = () => {
   min-width: 96px;
   line-height: 48px;
   text-align: center;
-  margin-right: 8px;
+  border-left: 2px solid #fff;
+  background-color: #f2f3f5;
+  box-sizing: border-box;
 }
 .rank-content {
   min-height: 64px;
   min-width: 96px;
   line-height: 64px;
   text-align: center;
+  border-left: 2px solid #fff;
+  background-color: #f2f3f5;
+  box-sizing: border-box;
 }
 .rank-scroll-wrapper {
   max-width: 100%;
-  max-height: 60vh;
+  height: calc(100vh - 260px);
   overflow: auto;
 }
 .contestInfo {

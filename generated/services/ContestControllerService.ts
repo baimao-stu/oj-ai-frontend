@@ -8,7 +8,7 @@ import type { BaseResponse_Contest_ } from "../models/BaseResponse_Contest_";
 import type { BaseResponse_ContestVO_ } from "../models/BaseResponse_ContestVO_";
 import type { BaseResponse_List_ContestQuestionVO_ } from "../models/BaseResponse_List_ContestQuestionVO_";
 import type { BaseResponse_long_ } from "../models/BaseResponse_long_";
-import type { BaseResponse_Page_ContestUserVO_ } from "../models/BaseResponse_Page_ContestUserVO_";
+import type { BaseResponse_Page_ContestRankSnapshotVO_ } from "../models/BaseResponse_Page_ContestRankSnapshotVO_";
 import type { BaseResponse_Page_ContestVO_ } from "../models/BaseResponse_Page_ContestVO_";
 import type { BaseResponse_Registrations_ } from "../models/BaseResponse_Registrations_";
 import type { ContestAddRequest } from "../models/ContestAddRequest";
@@ -298,13 +298,13 @@ export class ContestControllerService {
   /**
    * listRankByContestIdByPage
    * @param contestUserVoQueryRequest contestUserVOQueryRequest
-   * @returns BaseResponse_Page_ContestUserVO_ OK
+   * @returns BaseResponse_Page_ContestRankSnapshotVO_ OK
    * @returns any Created
    * @throws ApiError
    */
   public static listRankByContestIdByPageUsingPost(
     contestUserVoQueryRequest: ContestUserVOQueryRequest
-  ): CancelablePromise<BaseResponse_Page_ContestUserVO_ | any> {
+  ): CancelablePromise<BaseResponse_Page_ContestRankSnapshotVO_ | any> {
     return __request(OpenAPI, {
       method: "POST",
       url: "/api/contest/list/rankByContestIdByPage",

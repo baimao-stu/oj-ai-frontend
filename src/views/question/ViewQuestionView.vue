@@ -429,7 +429,7 @@
                   >
                     <a-option value="java">java</a-option>
                     <a-option value="cpp">cpp</a-option>
-                    <a-option value="python">python</a-option>
+                    <a-option value="python">python3</a-option>
                   </a-select>
                 </a-form-item>
               </a-form>

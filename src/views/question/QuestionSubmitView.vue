@@ -42,6 +42,8 @@
         total,
       }"
       @page-change="onPageChange"
+      column-resizable
+      :table-layout-fixed="true"
     >
       <template #judgeInfo="{ record }">
         <a-tag
@@ -209,6 +211,7 @@ const columns = [
       color: "gray",
       fontWeight: "500",
     },
+    width: 210,
   },
 ];
 
@@ -246,7 +249,7 @@ const doSubmit = () => {
 
 <style scoped>
 #questionSubmitView {
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 </style>

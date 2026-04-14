@@ -549,61 +549,72 @@ const sendMessage = async () => {
     if (!response.ok || !response.body) {
       throw new Error("流式接口调用失败");
     }
-    await readSseStream(response.body, assistantIndex);
+    const completedByDone = await readSseStream(response.body, assistantIndex);
+    if (!completedByDone) {
+      applyFriendlyStreamMessage(
+        assistantIndex,
+        "请求超时或连接中断，请重试。"
+      );
+    }
   } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, "流式请求失败");
     if ((error as { name?: string })?.name !== "AbortError") {
-      message.warning("流式响应失败，自动切换为普通接口");
-      try {
-        const normalRes = await requestJson(
-          "/api/ai/chat/message/send",
-          payload
-        );
-        if (normalRes.code === 0) {
-          replaceMessage(assistantIndex, (current) =>
-            normalizeAssistantMessage({
-              ...current,
-              id: normalRes.data.id as number,
-              mode:
-                typeof normalRes.data.mode === "string"
-                  ? normalRes.data.mode
-                  : current.mode,
-              rawContent:
-                typeof normalRes.data.rawContent === "string"
-                  ? normalRes.data.rawContent
-                  : typeof normalRes.data.content === "string"
-                  ? normalRes.data.content
-                  : current.rawContent,
-              content:
-                typeof normalRes.data.finalContent === "string"
-                  ? normalRes.data.finalContent
-                  : current.content,
-              reasoningDurationMs:
-                typeof normalRes.data.reasoningDurationMs === "number"
-                  ? normalRes.data.reasoningDurationMs
-                  : resolveReasoningDurationMs(current),
-              streaming: false,
-              toolEvents: parseToolEvents(normalRes.data.toolCalls),
-            })
+      if (isSseTimeoutError(errorMessage)) {
+        applyFriendlyStreamMessage(assistantIndex, "请求超时，请稍后重试。");
+      } else {
+        message.warning("流式响应失败，自动切换为普通接口");
+        try {
+          const normalRes = await requestJson(
+            "/api/ai/chat/message/send",
+            payload
           );
-        } else {
+          if (normalRes.code === 0) {
+            replaceMessage(assistantIndex, (current) =>
+              normalizeAssistantMessage({
+                ...current,
+                id: normalRes.data.id as number,
+                mode:
+                  typeof normalRes.data.mode === "string"
+                    ? normalRes.data.mode
+                    : current.mode,
+                rawContent:
+                  typeof normalRes.data.rawContent === "string"
+                    ? normalRes.data.rawContent
+                    : typeof normalRes.data.content === "string"
+                    ? normalRes.data.content
+                    : current.rawContent,
+                content:
+                  typeof normalRes.data.finalContent === "string"
+                    ? normalRes.data.finalContent
+                    : current.content,
+                reasoningDurationMs:
+                  typeof normalRes.data.reasoningDurationMs === "number"
+                    ? normalRes.data.reasoningDurationMs
+                    : resolveReasoningDurationMs(current),
+                streaming: false,
+                toolEvents: parseToolEvents(normalRes.data.toolCalls),
+              })
+            );
+          } else {
+            replaceMessage(assistantIndex, (current) =>
+              normalizeAssistantMessage({
+                ...current,
+                rawContent: `请求失败：${normalRes.message || "未知错误"}`,
+                reasoningDurationMs: resolveReasoningDurationMs(current),
+                streaming: false,
+              })
+            );
+          }
+        } catch (fallbackError: unknown) {
           replaceMessage(assistantIndex, (current) =>
             normalizeAssistantMessage({
               ...current,
-              rawContent: `请求失败：${normalRes.message || "未知错误"}`,
+              rawContent: getErrorMessage(fallbackError, "请求失败"),
               reasoningDurationMs: resolveReasoningDurationMs(current),
               streaming: false,
             })
           );
         }
-      } catch (fallbackError: unknown) {
-        replaceMessage(assistantIndex, (current) =>
-          normalizeAssistantMessage({
-            ...current,
-            rawContent: getErrorMessage(fallbackError, "请求失败"),
-            reasoningDurationMs: resolveReasoningDurationMs(current),
-            streaming: false,
-          })
-        );
       }
     } else {
       replaceMessage(assistantIndex, (current) => ({
@@ -634,7 +645,7 @@ const stopGenerating = () => {
 const readSseStream = async (
   stream: ReadableStream<Uint8Array>,
   assistantIndex: number
-) => {
+): Promise<boolean> => {
   const reader = stream.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
@@ -660,11 +671,34 @@ const readSseStream = async (
 
     if (done) {
       if (buffer.trim()) {
-        await handleSseFrame(buffer, assistantIndex);
+        finished = (await handleSseFrame(buffer, assistantIndex)) || finished;
       }
       break;
     }
   }
+  return finished;
+};
+
+const applyFriendlyStreamMessage = (assistantIndex: number, text: string) => {
+  replaceMessage(assistantIndex, (current) =>
+    normalizeAssistantMessage({
+      ...current,
+      rawContent: text,
+      content: text,
+      reasoningDurationMs: resolveReasoningDurationMs(current),
+      streaming: false,
+      showDetails: false,
+    })
+  );
+};
+
+const isSseTimeoutError = (messageText: string) => {
+  const lower = (messageText || "").toLowerCase();
+  return (
+    messageText.includes("超时") ||
+    lower.includes("timeout") ||
+    lower.includes("timed out")
+  );
 };
 
 const handleSseFrame = async (

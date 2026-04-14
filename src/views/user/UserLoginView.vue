@@ -35,7 +35,6 @@
           </a-button>
         </a-space>
       </a-form-item>
-      <div style="color: gray; margin-top: 10px">管理员：admin，12345678</div>
     </a-form>
   </div>
 </template>

@@ -35,6 +35,8 @@
         showTotal: true,
       }"
       @page-change="onPageChange"
+      column-resizable
+      :table-layout-fixed="true"
     >
       <template #tags="{ record }">
         <a-space wrap>
@@ -274,7 +276,7 @@ const doDeleteQuestion = async (question: Question) => {
 
 <style scoped>
 #manageQuestionView {
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 </style>
